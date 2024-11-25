@@ -1,291 +1,68 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>贪吃蛇游戏</title>
-    <style>
-        body {
-            margin: 0;
-            background-color: #242424;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
 
-        h1 {
-            color: #ffffff;
-            margin-bottom: 20px;
-        }
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
 
-        .score {
-            color: #00ff00;
-            font-size: 20px;
-            margin-bottom: 10px;
-        }
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-        .high-score {
-            color: #888;
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
 
-        #gameCanvas {
-            border: 2px solid #333;
-            background-color: #000;
-            margin-bottom: 20px;
-        }
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
 
-        .controls {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
 
-        .control-row {
-            display: flex;
-            gap: 10px;
-        }
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
 
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #000;
-            color: #00ff00;
-            border: 1px solid #00ff00;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        button:hover {
-            background-color: #00ff00;
-            color: #000;
-        }
-
-        select {
-            padding: 5px;
-            font-size: 16px;
-            background-color: #000;
-            color: #00ff00;
-            border: 1px solid #00ff00;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 20px;
-        }
-
-        .leaderboard-btn {
-            padding: 5px 10px;
-            font-size: 14px;
-        }
-    </style>
-</head>
-<body>
-    <h1>贪吃蛇游戏</h1>
-    <div class="game-header">
-        <div>
-            <div class="score">当前分数: 0</div>
-            <div class="high-score">最高分数: 0</div>
-        </div>
-        <div>
-            <select id="difficulty">
-                <option value="normal">普通</option>
-                <option value="easy">简单</option>
-                <option value="hard">困难</option>
-            </select>
-            <button id="restartBtn">重新开始</button>
-        </div>
-    </div>
-    <button class="leaderboard-btn">查看排行榜</button>
-    <canvas id="gameCanvas" width="400" height="400"></canvas>
-    <div class="controls">
-        <div class="control-row">
-            <button id="upBtn">↑</button>
-        </div>
-        <div class="control-row">
-            <button id="leftBtn">←</button>
-            <button id="downBtn">↓</button>
-            <button id="rightBtn">→</button>
-        </div>
-        <div class="control-row">
-            <button id="spaceBtn">空格</button>
-            <button id="enterBtn">回车</button>
-        </div>
-    </div>
-
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const scoreElement = document.querySelector('.score');
-        const highScoreElement = document.querySelector('.high-score');
-        const difficultySelect = document.getElementById('difficulty');
-        const restartBtn = document.getElementById('restartBtn');
-
-        const GRID_SIZE = 20;
-        const CELL_SIZE = canvas.width / GRID_SIZE;
-
-        let snake = [
-            {x: 10, y: 10},
-            {x: 9, y: 10},
-            {x: 8, y: 10}
-        ];
-        let direction = 'right';
-        let food = getRandomFood();
-        let score = 0;
-        let highScore = localStorage.getItem('snakeHighScore') || 0;
-        let gameLoop;
-        let isPaused = false;
-        let gameSpeed = 150;
-
-        function getRandomFood() {
-            let position;
-            do {
-                position = {
-                    x: Math.floor(Math.random() * GRID_SIZE),
-                    y: Math.floor(Math.random() * GRID_SIZE)
-                };
-            } while (snake.some(segment => segment.x === position.x && segment.y === position.y));
-            return position;
-        }
-
-        function draw() {
-            // Clear canvas
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw snake
-            snake.forEach((segment, index) => {
-                ctx.fillStyle = index === 0 ? '#00ff00' : '#00cc00';
-                ctx.fillRect(segment.x * CELL_SIZE, segment.y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
-            });
-
-            // Draw food
-            ctx.fillStyle = '#ff0000';
-            ctx.fillRect(food.x * CELL_SIZE, food.y * CELL_SIZE, CELL_SIZE - 1, CELL_SIZE - 1);
-
-            // Update score
-            scoreElement.textContent = `当前分数: ${score}`;
-            highScoreElement.textContent = `最高分数: ${highScore}`;
-        }
-
-        function move() {
-            if (isPaused) return;
-
-            const head = {...snake[0]};
-
-            switch(direction) {
-                case 'up': head.y--; break;
-                case 'down': head.y++; break;
-                case 'left': head.x--; break;
-                case 'right': head.x++; break;
-            }
-
-            // Check collision with walls
-            if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
-                gameOver();
-                return;
-            }
-
-            // Check collision with self
-            if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
-                gameOver();
-                return;
-            }
-
-            snake.unshift(head);
-
-            // Check if food is eaten
-            if (head.x === food.x && head.y === food.y) {
-                score++;
-                if (score > highScore) {
-                    highScore = score;
-                    localStorage.setItem('snakeHighScore', highScore);
-                }
-                food = getRandomFood();
-            } else {
-                snake.pop();
-            }
-
-            draw();
-        }
-
-        function gameOver() {
-            clearInterval(gameLoop);
-            alert(`游戏结束！得分：${score}`);
-            resetGame();
-        }
-
-        function resetGame() {
-            snake = [
-                {x: 10, y: 10},
-                {x: 9, y: 10},
-                {x: 8, y: 10}
-            ];
-            direction = 'right';
-            score = 0;
-            food = getRandomFood();
-            isPaused = false;
-            updateGameSpeed();
-            startGame();
-        }
-
-        function updateGameSpeed() {
-            switch(difficultySelect.value) {
-                case 'easy': gameSpeed = 200; break;
-                case 'normal': gameSpeed = 150; break;
-                case 'hard': gameSpeed = 100; break;
-            }
-        }
-
-        function startGame() {
-            clearInterval(gameLoop);
-            gameLoop = setInterval(move, gameSpeed);
-        }
-
-        function togglePause() {
-            isPaused = !isPaused;
-        }
-
-        // Event Listeners
-        document.addEventListener('keydown', (e) => {
-            switch(e.key) {
-                case 'ArrowUp': if (direction !== 'down') direction = 'up'; break;
-                case 'ArrowDown': if (direction !== 'up') direction = 'down'; break;
-                case 'ArrowLeft': if (direction !== 'right') direction = 'left'; break;
-                case 'ArrowRight': if (direction !== 'left') direction = 'right'; break;
-                case ' ': togglePause(); break;
-                case 'Enter': resetGame(); break;
-            }
-        });
-
-        document.getElementById('upBtn').addEventListener('click', () => { if (direction !== 'down') direction = 'up'; });
-        document.getElementById('downBtn').addEventListener('click', () => { if (direction !== 'up') direction = 'down'; });
-        document.getElementById('leftBtn').addEventListener('click', () => { if (direction !== 'right') direction = 'left'; });
-        document.getElementById('rightBtn').addEventListener('click', () => { if (direction !== 'left') direction = 'right'; });
-        document.getElementById('spaceBtn').addEventListener('click', togglePause);
-        document.getElementById('enterBtn').addEventListener('click', resetGame);
-        restartBtn.addEventListener('click', resetGame);
-        difficultySelect.addEventListener('change', () => {
-            updateGameSpeed();
-            startGame();
-        });
-
-        // Start game
-        updateGameSpeed();
-        startGame();
-    </script>
-</body>
-</html>
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
