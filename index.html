@@ -111,6 +111,56 @@
         font-size: 14px;
         color: #fff;
       }
+
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-content {
+        background-color: #242424;
+        padding: 2rem;
+        border-radius: 8px;
+        border: 1px solid #00ff00;
+        text-align: center;
+        color: #fff;
+      }
+
+      .name-input {
+        margin: 1rem 0;
+        padding: 0.5rem;
+        background-color: #333;
+        border: 1px solid #00ff00;
+        border-radius: 4px;
+        color: #fff;
+        width: 200px;
+      }
+
+      .modal-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 1rem;
+      }
+
+      .revive-question {
+        color: #fff;
+        font-size: 18px;
+        margin: 1rem 0;
+      }
+
+      .error-message {
+        color: #ff4444;
+        margin: 0.5rem 0;
+        font-size: 14px;
+      }
     </style>
   </head>
     <body>
@@ -182,6 +232,61 @@
       let gameInterval = null;
       let isPaused = false;
       let isGameOver = false;
+      let canRevive = true;
+            // 复活相关函数
+      function showReviveModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+          <div class="modal-content">
+            <div class="revive-question">请回答：蔡徐坤打篮球多久了？</div>
+            <input type="text" class="name-input" placeholder="输入答案..." autofocus>
+            <div class="error-message" style="display: none;">答案错误，请重试！</div>
+            <div class="modal-buttons">
+              <button onclick="checkAnswer(this)">复活</button>
+              <button onclick="closeReviveModal()">放弃</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+      }
+
+      function closeReviveModal() {
+        const modal = document.querySelector('.modal-overlay');
+        if (modal) {
+          modal.remove();
+        }
+        canRevive = false;
+      }
+
+      function checkAnswer(button) {
+        const input = button.parentElement.parentElement.querySelector('input');
+        const errorMessage = button.parentElement.parentElement.querySelector('.error-message');
+        
+        if (input.value.trim() === '两年半') {
+          closeReviveModal();
+          revivePlayer();
+        } else {
+          errorMessage.style.display = 'block';
+          input.value = '';
+          input.focus();
+        }
+      }
+
+      function revivePlayer() {
+        isGameOver = false;
+        // 确保蛇的新位置不会立即导致游戏结束
+        snake = [
+          { x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) },
+          { x: Math.floor(GRID_SIZE / 2) - 1, y: Math.floor(GRID_SIZE / 2) },
+          { x: Math.floor(GRID_SIZE / 2) - 2, y: Math.floor(GRID_SIZE / 2) }
+        ];
+        direction = 'RIGHT';
+        generateFood();
+        gameInterval = setInterval(moveSnake, DIFFICULTIES[difficultySelect.value].speed);
+        controlButton.textContent = '暂停';
+        draw();
+      }
 
       // 更新分数显示
       function updateScore() {
@@ -305,6 +410,11 @@
         isGameOver = true;
         clearInterval(gameInterval);
         
+        if (canRevive) {
+          showReviveModal();
+          return;
+        }
+        
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE);
         
@@ -342,6 +452,7 @@
         score = 0;
         isGameOver = false;
         isPaused = false;
+        canRevive = true;
         updateScore();
         generateFood();
         draw();
